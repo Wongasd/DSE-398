@@ -149,7 +149,7 @@ $resultPublishers = $conn->query($queryPublishers);
         
         <div class="form-group">
             <label for="PublishedYear">Year Published </label>
-            <input type="date" class="form-control" id="PublishedYear" name="PublishedYear" value="<?php echo htmlspecialchars($book['PublishedYear']); ?>" min="1940-01-01" max="<?php echo $currentDate; ?>" required>
+            <input type="date" class="form-control" id="PublishedYear" name="PublishedYear" value="<?php echo htmlspecialchars($book['PublishedYear']); ?>"  max="<?php echo $currentDate; ?>" required>
         </div>
 
         

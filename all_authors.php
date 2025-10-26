@@ -68,10 +68,10 @@ if (!$resultAuthors) {
                                         <button type="button" class="btn btn-danger" data-product-tile="add-to-cart" 
                                         onclick="confirmDeletion('<?=$author['AuthorID']?>')">Delete</button>
 									<?php } elseif ($Permission == '3') { ?>
-										<!-- If the user is not an admin, the button redirects to the borrow page -->
-										<button type="button" class="btn btn-primary" data-product-tile="add-to-cart" onclick="window.location.href='author_details.php?AuthorID=<?=$author['AuthorID']?>'">View</button>
+                                        <button type="button" class="btn btn-primary" data-product-tile="add-to-cart" onclick="window.location.href='edit_author.php?AuthorID=<?=$author['AuthorID']?>'">Edit</button>
 									<?php } elseif($Permission == '2') { ?>
-										<button type="button" class="btn btn-primary" data-product-tile="add-to-cart" onclick="window.location.href='edit_author.php?AuthorID=<?=$author['AuthorID']?>'">Edit</button>										
+										<!-- If the user is not an admin, the button redirects to the borrow page -->
+										<button type="button" class="btn btn-primary" data-product-tile="add-to-cart" onclick="window.location.href='author_details.php?AuthorID=<?=$author['AuthorID']?>'">View</button>																				
 									<?php } else { ?>
                                     <!-- If the user is not logged in or has no permission, show an alert and redirect to login -->
 										<button type="button" class="btn btn-primary" data-product-tile="add-to-cart" onclick="alert('Please login first'); window.location.href='login.php';">Login to Continue</button>
