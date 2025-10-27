@@ -1,33 +1,37 @@
 <?php
 include_once("database/db.php");
 
-$sqlBookCount = "select * from books where BookID = '$_GET[BookID]'";
+$sqlBookCount = "SELECT * FROM books WHERE BookID = '$_GET[BookID]'";
 $qryBookCount = mysqli_query($conn, $sqlBookCount);
 $aryBookCount = mysqli_fetch_array($qryBookCount);
 
 $maxQuantity = $aryBookCount['Quantity'];
 $bookName = $aryBookCount['Title'];
-
+$bookStatus = $aryBookCount['Status']; // get current status
 
 if(isset($_POST['submit'])){
 
-    $bookID= $_GET['BookID'];
-    $UserId= $_SESSION['UserID'];
-    $formDate= $_POST['fromDate'];
-    $dueDate= $_POST['dueDate'];
-    $Quantity= $_POST['Quantity'];
-    
+    $bookID = $_GET['BookID'];
+    $UserId = $_SESSION['UserID'];
+    $formDate = $_POST['fromDate'];
+    $dueDate = $_POST['dueDate'];
+    $Quantity = $_POST['Quantity'];
 
-    $sql = "insert into transactions (BookID, Quantity,UserID, BorrowDate, DueDate, Status) Values ('$bookID',$Quantity,'$UserId','$formDate','$dueDate','PENDING')";
-    if($qry = mysqli_query($conn, $sql)){
-        echo "<script>alert('request borrow successful');</script>";
-        
-    }else{
-        echo "<script>alert('request borrow failed. Please try again.');</script>";
-    }  
- 
+    // Check if book is available or quantity is sufficient
+    if($bookStatus == "Unavailable" || $maxQuantity < $Quantity){
+        echo "<script>alert('Request borrow failed. Book is out of stock or unavailable.');window.location.href='index.php';</script>";
+    } else {
+        $sql = "INSERT INTO transactions (BookID, Quantity, UserID, BorrowDate, DueDate, Status) 
+                VALUES ('$bookID', $Quantity, '$UserId', '$formDate', '$dueDate', 'PENDING')";
+        if($qry = mysqli_query($conn, $sql)){
+            echo "<script>alert('Request borrow successful');window.location.href='index.php';</script>";
+        } else {
+            echo "<script>alert('Request borrow failed. Please try again.');</script>";
+        }
+    } 
 }
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

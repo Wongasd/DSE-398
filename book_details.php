@@ -53,6 +53,15 @@ if (isset($_GET['BookID'])) {
 	<link rel="stylesheet" type="text/css" href="css/vendor.css">
 	<link rel="stylesheet" type="text/css" href="style.css">
 
+    <style>
+        /* Disable the link visually and functionally */
+        .disabled-link {
+            pointer-events: none; /* Prevent clicks */
+            opacity: 0.6;         /* Make it look disabled */
+            cursor: not-allowed;  /* Show "not-allowed" cursor */
+            text-decoration: none; /* Remove underline */
+        }
+    </style>
 </head>
 
 <body data-bs-spy="scroll" data-bs-target="#header" tabindex="0">
@@ -76,7 +85,15 @@ if (isset($_GET['BookID'])) {
                             <p><strong>Genre:</strong> <?php echo htmlspecialchars($book['GenreName']); ?></p>
                             <p><strong>Publisher:</strong> <?php echo htmlspecialchars($book['PublisherName']); ?></p>
                             <p><strong>Published Year:</strong> <?php echo htmlspecialchars($book['PublishedYear']); ?></p>
-                            <p><strong>Copies Available:</strong> <?php echo htmlspecialchars($book['Quantity']); ?></p>
+                            <p><strong>Copies Available:</strong> 
+                                <?php 
+                                    if ($book['Quantity'] == 0 || $book['Status'] == "Unavailable") {
+                                        echo "Out of Stock";
+                                    } else {
+                                        echo htmlspecialchars($book['Quantity']);
+                                    }
+                                ?>
+                            </p>
                         </div>
                     </div>
                     
@@ -87,17 +104,25 @@ if (isset($_GET['BookID'])) {
                             Go back
                         </a>
 
-                        <?php if (isset($_SESSION['UserID'])): ?>
-                            <!-- User is logged in → Show Borrow Button -->
-                            <a href="borrow.php?BookID=<?php echo $BookID; ?>" class="btn btn-success">
-                                Borrow This Book
-                            </a>
+                        <?php if ($book['Quantity'] > 0 && $book['Status'] != "Unavailable"): ?>
+                            <?php if (isset($_SESSION['UserID'])): ?>
+                                <!-- User is logged in → Show Borrow Button -->
+                                <a href="borrow.php?BookID=<?php echo $BookID; ?>" class="btn btn-success">
+                                    Borrow This Book
+                                </a>
+                            <?php else: ?>
+                                <!-- User NOT logged in → Show Login Prompt -->
+                                <a href="login.php" class="btn btn-outline-success">
+                                    Login to Borrow
+                                </a>
+                            <?php endif; ?>
                         <?php else: ?>
-                            <!-- User NOT logged in → Show Login Prompt -->
-                            <a href="login.php" class="btn btn-outline-success">
-                                Login to Borrow
-                            </a>
+                            <!-- Book is out of stock → Disable Borrow Button -->
+                                <a href="#" class="btn btn-secondary disabled-link" tabindex="-1" aria-disabled="true">
+                                    Out of Stock
+                                </a>
                         <?php endif; ?>
+
                     </div>
                 </div>
             </div>
