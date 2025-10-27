@@ -1,84 +1,96 @@
 <?php
 include_once('database/db.php');
-if (isset($_GET['transactionID'])) {
-    $transactionID = $_GET['transactionID'];
+
+if (isset($_GET['transactionID']) && isset($_GET['status'])) {
+
+    $transactionID = intval($_GET['transactionID']);
     $status = $_GET['status'];
 
-    $selectTransactionSql = "SELECT t.*,b.Quantity as AvailableQuantity from transactions as t left join books as b on b.BookID = t.BookID where transactionID = '$transactionID'";
-    $selectTransactionQry = mysqli_query($conn,$selectTransactionSql);
-    $selectTransactionFetch = mysqli_fetch_array($selectTransactionQry);
+    // 1. Get current transaction + book info
+    $sql = "SELECT t.*, b.Quantity AS AvailableQuantity 
+            FROM transactions AS t 
+            LEFT JOIN books AS b ON b.BookID = t.BookID 
+            WHERE t.TransactionID = '$transactionID'";
+    $res = mysqli_query($conn, $sql);
+    $data = mysqli_fetch_array($res);
 
-    $borrowQuantity = $selectTransactionFetch['Quantity'];
-    $actualQuantity = $selectTransactionFetch['AvailableQuantity'];
-    $borrowBook = $selectTransactionFetch['BookID'];
-    $currentStatus = $selectTransactionFetch['Status'];
+    $borrowQuantity = $data['Quantity'];
+    $currentQuantity = $data['AvailableQuantity'];
+    $bookID = $data['BookID'];
+    $currentStatus = $data['Status'];
 
-    if($status == "RETURNED"){
-        $ReturnDate = "ReturnDate = '" . date('Y-m-d') . "'";
-    }else{
-        $ReturnDate = "ReturnDate = NULL";
+    // 2. Set Return Date (if returning)
+    $returnDateQuery = ($status == "RETURNED") 
+        ? "ReturnDate = '" . date('Y-m-d') . "'" 
+        : "ReturnDate = NULL";
+
+    // 3. Calculate quantity change
+    $afterUpdateQuantity = null;
+    if ($status == "APPROVE") {
+        $afterUpdateQuantity = $currentQuantity - $borrowQuantity;
+    } elseif (($status == "PENDING" || $status == "RETURNED") && $currentStatus != "DENIED") {
+        $afterUpdateQuantity = $currentQuantity + $borrowQuantity;
     }
 
-    if(($status == "PENDING" || $status == "RETURNED") && $currentStatus !=="DENIED" ){
-        $afterUpdateQuantity = $actualQuantity + $borrowQuantity;
-    }elseif($status == "APPROVE"){
-        $afterUpdateQuantity = $actualQuantity - $borrowQuantity;
+    // 4. Update transaction row
+    $updateTransactionSql = "UPDATE transactions SET Status = '$status', $returnDateQuery 
+                             WHERE TransactionID = '$transactionID'";
+    $updateTransaction = mysqli_query($conn, $updateTransactionSql);
+
+    // 5. Update book quantity if needed
+    $updateBook = true;
+    if ($currentStatus != "DENIED" && $afterUpdateQuantity !== null) {
+        $updateBookSql = "UPDATE books SET Quantity = $afterUpdateQuantity WHERE BookID = $bookID";
+        $updateBook = mysqli_query($conn, $updateBookSql);
     }
 
-    $updateTransactionSql = "UPDATE transactions SET Status = '$status',  $ReturnDate  WHERE TransactionID = '$transactionID'";
-    $updateTransactionQry = mysqli_query($conn, $updateTransactionSql);
+    // 6. If returned, check if it is late → update to "ReturnedLate"
+    if ($status == "RETURNED") {
+        $checkSql = "SELECT DueDate, ReturnDate FROM transactions WHERE TransactionID = '$transactionID'";
+        $checkRes = mysqli_query($conn, $checkSql);
+        $rowCheck = mysqli_fetch_assoc($checkRes);
 
-    if($currentStatus !=="DENIED"){
-        $updateBookSql = "UPDATE books SET Quantity = $afterUpdateQuantity where BookID = $borrowBook";
-        $updateBookQry = mysqli_query($conn, $updateBookSql);
-    }else{
-        $updateBookQry = true;
+        if (!empty($rowCheck['DueDate']) && !empty($rowCheck['ReturnDate'])) {
+            if (strtotime($rowCheck['ReturnDate']) > strtotime($rowCheck['DueDate'])) {
+                // 🔹 Update late return permanently in DB
+                mysqli_query($conn, "UPDATE transactions SET Status = 'ReturnedLate' WHERE TransactionID = '$transactionID'");
+                $status = "ReturnedLate"; // update displayed status also
+            }
+        }
     }
 
+    // 7. Send back updated row
+    if ($updateTransaction && $updateBook) {
+        $fetchQuery = "SELECT t.*, CONCAT(u.FirstName, ' ', u.LastName) AS FullName, b.Title
+                       FROM transactions AS t
+                       LEFT JOIN users AS u ON t.UserID = u.UserID
+                       LEFT JOIN books AS b ON b.BookID = t.BookID
+                       WHERE t.TransactionID = '$transactionID'";
+        $fetchData = mysqli_query($conn, $fetchQuery);
 
-    if ($updateTransactionQry && $updateBookQry) {
-        $fetchQuery = "select t.*,concat(FirstName, LastName) as FullName, b.Title from transactions as t left join users as u on t.UserID = u.UserID left join books as b on b.BookID = t.BookID WHERE TransactionID = '$transactionID'";
-        $fetchResult = mysqli_query($conn, $fetchQuery);
-
-        while($fetchArray =mysqli_fetch_array($fetchResult)) {
-            // Return the updated status as a response
+        while ($row = mysqli_fetch_array($fetchData)) {
             echo "
-            <td>{$fetchArray['TransactionID']}</td>
-            <td>{$fetchArray['Title']}</td>
-            <td>{$fetchArray['FullName']}</td>
-            <td>{$fetchArray['BorrowDate']}</td>
-            <td>{$fetchArray['ReturnDate']}</td>
-            <td>{$fetchArray['DueDate']}</td>
-            <td>{$fetchArray['Status']}</td>
-            <td>{$fetchArray['Quantity']}</td>
+            <td>{$row['TransactionID']}</td>
+            <td>{$row['Title']}</td>
+            <td>{$row['FullName']}</td>
+            <td>{$row['BorrowDate']}</td>
+            <td>{$row['ReturnDate']}</td>
+            <td>{$row['DueDate']}</td>
+            <td>{$status}</td>
+            <td>{$row['Quantity']}</td>
             <td>";
 
-            if($fetchArray['Status']=="PENDING"){
-                echo"<div class='row'>";
-                echo"<div class='col'>";
-                echo "<button class='form-control btn btn-success' onclick='updateStatus(\"{$fetchArray['TransactionID']}\", \"APPROVE\", this)'>Approve</button>";
-                echo"</div>";
-                echo"<div class='col'>";
-                echo "<button class='form-control btn btn-danger' onclick='updateStatus(\"{$fetchArray['TransactionID']}\", \"DENIED\", this)'>Denied</button>";
-                echo"</div>";
-            }else{
-                echo"<div class='row'>";
-                
-                if($fetchArray['Status']=="APPROVE"){
-                    echo"<div class='col'>";
-                    echo "<button class='form-control btn btn-primary' onclick='updateStatus(\"{$fetchArray['TransactionID']}\", \"RETURNED\", this)'>Return</button>";
-                    echo"</div>";
-                }
-                
-                if($fetchArray['Status']!=="RETURNED"){
-                echo"<div class='col'>";
-                echo "<button class='form-control btn btn-danger' onclick='updateStatus(\"{$fetchArray['TransactionID']}\", \"PENDING\", this)'>Undo</button>";
-                echo"</div>";
-                }
+            if ($status == "PENDING") {
+                echo "<button class='btn btn-success' onclick='updateStatus(\"{$row['TransactionID']}\", \"APPROVE\", this)'>Approve</button>
+                      <button class='btn btn-danger' onclick='updateStatus(\"{$row['TransactionID']}\", \"DENIED\", this)'>Denied</button>";
+            } elseif ($status == "APPROVE") {
+                echo "<button class='btn btn-primary' onclick='updateStatus(\"{$row['TransactionID']}\", \"RETURNED\", this)'>Return</button>";
+            } elseif ($status != "RETURNED" && $status != "ReturnedLate") {
+                echo "<button class='btn btn-warning' onclick='updateStatus(\"{$row['TransactionID']}\", \"PENDING\", this)'>Undo</button>";
             }
-            "<td>";
 
-        } 
+            echo "</td>";
+        }
     }
 }
 ?>

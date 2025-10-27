@@ -99,7 +99,7 @@ $Permission = isset($_SESSION['Permission']) ? $_SESSION['Permission'] : '';
 										<button type="button" class="add-to-cart" data-product-tile="add-to-cart" onclick="window.location.href='edit_book.php?BookID=<?=$book['BookID']?>'">Edit</button>
 									<?php } elseif($Permission == '2') { ?>
 										<!-- If the user is not an admin, the button redirects to the borrow page -->
-										<button type="button" class="add-to-cart" data-product-tile="add-to-cart" onclick="window.location.href='borrow.php?BookID=<?=$book['BookID']?>'">Borrow</button>										
+                                        <button type="button" class="add-to-cart" data-product-tile="add-to-cart" onclick="window.location.href='book_details.php?BookID=<?=$book['BookID']?>'">View</button>									
                                     <?php } else { ?>
                                     <!-- If the user is not logged in or has no permission, show an alert and redirect to login -->
 										<button type="button" class="add-to-cart" data-product-tile="add-to-cart" onclick="alert('Please login first'); window.location.href='login.php';">Login to Continue</button>                                    

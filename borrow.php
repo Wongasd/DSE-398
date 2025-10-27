@@ -6,6 +6,7 @@ $qryBookCount = mysqli_query($conn, $sqlBookCount);
 $aryBookCount = mysqli_fetch_array($qryBookCount);
 
 $maxQuantity = $aryBookCount['Quantity'];
+$bookName = $aryBookCount['Title'];
 
 
 if(isset($_POST['submit'])){
@@ -35,7 +36,7 @@ if(isset($_POST['submit'])){
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Add Author</title>
+    <title>Borrow</title>
 
     <link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Roboto:400,100,300,500">
     <link rel="stylesheet" href="assets/bootstrap/css/bootstrap.min.css">
@@ -46,9 +47,9 @@ if(isset($_POST['submit'])){
     <link rel="shortcut icon" href="assets/ico/favicon.png">
 
     <style>
-        label {
-            color: white;
-        }
+        label { color: white; }
+        .book-image { max-width: 100%; max-height: 250px; object-fit: cover; border-radius: 10px; }
+        .book-info { background: white; padding: 15px; border-radius: 10px; }
     </style>
 </head>
 
@@ -68,14 +69,28 @@ if(isset($_POST['submit'])){
                         <div class="form-box">
                             <div class="form-bottom">
                                 <form role="form" action="borrow.php?BookID=<?=$_GET['BookID']?>" method="POST" enctype="multipart/form-data" class="registration-form">
+                                    <div class="form-group">
+                                        <label for="BookImage">Book Cover</label>
+                                    <img src="<?= !empty($aryBookCount['Image']) ? htmlspecialchars($aryBookCount['Image']) : 'db_image/default.jpg'; ?>" class="book-image" alt="Book Image">
+                                    </div>
 
                                     <div class="form-group">
-                                        <label for="fromDate">from date:</label>
+                                        <label for="BookTitle">Book Name</label>
+                                        <input type="text" id="BookTitle" name="BookTitle" class="form-control" value="<?=$bookName?>" disabled>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="Quantity">Quantity</label>
+                                        <input type="number" id="Quantity" name="Quantity" class="form-control" value="<?=$maxQuantity?>" disabled>
+                                    </div>                                    
+                                
+                                    <div class="form-group">
+                                        <label for="fromDate">Borrow date:</label>
                                         <input type="date" id="fromDate" name="fromDate" class="form-control">
                                     </div>
                                     
                                     <div class="form-group">
-                                        <label for="dueDate">due date</label>
+                                        <label for="dueDate">Due date: (max 14 days)</label>
                                         <input type="date" id="dueDate" name="dueDate" class="form-control">
                                     </div>
                                     
@@ -123,20 +138,16 @@ if(isset($_POST['submit'])){
 </html>
  
 <script>
-    
-    function formatDate(date) {
-        const yyyy = date.getFullYear();
-        const mm = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-indexed
-        const dd = String(date.getDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd}`;
-    }
-
-    // Set today's date
+    // ✅ Auto-set Borrow Date = Today & Due Date = +7 days, Max = +14 days
     const today = new Date();
-    document.getElementById('fromDate').value = formatDate(today);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(today.getDate() + 7);
 
-    // Set one week from today
-    const nextWeek = new Date();
-    nextWeek.setDate(today.getDate() + 7); // Add 7 days
-    document.getElementById('dueDate').value = formatDate(nextWeek);
+    const maxDue = new Date(today);
+    maxDue.setDate(today.getDate() + 14);
+
+    document.getElementById('fromDate').value = today.toISOString().split('T')[0];
+    document.getElementById('dueDate').value = nextWeek.toISOString().split('T')[0];
+    document.getElementById('dueDate').setAttribute('max', maxDue.toISOString().split('T')[0]);
+    document.getElementById('dueDate').setAttribute('min', today.toISOString().split('T')[0]);
 </script>

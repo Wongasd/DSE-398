@@ -35,7 +35,7 @@ if (isset($_GET['BookID'])) {
 <html lang="en">
 
 <head>
-	<title>BookSaw - Free Book Store HTML CSS Template</title>
+	<title>Book Details</title>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -81,8 +81,23 @@ if (isset($_GET['BookID'])) {
                     </div>
                     
                     <!-- Optionally, you can add a "Go back" button -->
-                    <div class="text-center mt-4">
-                        <a href="index.php" class="btn btn-secondary">Go back</a>
+                     <div class="text-center mt-4">
+                        <a href="#" class="btn btn-secondary me-2"
+                            onclick="if (document.referrer) { history.back(); } else { window.location.href='index.php'; }">
+                            Go back
+                        </a>
+
+                        <?php if (isset($_SESSION['UserID'])): ?>
+                            <!-- User is logged in → Show Borrow Button -->
+                            <a href="borrow.php?BookID=<?php echo $BookID; ?>" class="btn btn-success">
+                                Borrow This Book
+                            </a>
+                        <?php else: ?>
+                            <!-- User NOT logged in → Show Login Prompt -->
+                            <a href="login.php" class="btn btn-outline-success">
+                                Login to Borrow
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>

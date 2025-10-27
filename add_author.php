@@ -16,30 +16,50 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $imageDir = "db_image/";
     $ImageName = $_FILES['Image']['name'];
     $ImageTemp = $_FILES['Image']['tmp_name'];
-    $ImagePath = $imageDir . basename($ImageName);
+
+    // If user uploaded an image
+    if (!empty($ImageName)) {
+        // Get the image extension (e.g., jpg, png)
+        $extension = pathinfo($ImageName, PATHINFO_EXTENSION);
+
+        // Create unique filename -> author_64feb21d3d3a6.jpg
+        $uniqueImageName = 'author_' . uniqid() . '.' . $extension;
+
+        // Final path to save in database
+        $ImagePath = $imageDir . $uniqueImageName;
+    }
 
     // Check if the author already exists
     $qry = "SELECT * FROM authors WHERE FirstName = '$FirstName' AND LastName = '$LastName'";
     $result = mysqli_query($conn, $qry);
-    $rows = mysqli_num_rows($result);
 
-    if ($rows == 1) {
+    if (mysqli_num_rows($result) > 0) {
         echo "<script>alert('That person is already in the database');</script>";
     } else {
-        // Validate and upload image
-        if (move_uploaded_file($ImageTemp, $ImagePath)) {
-            $query = "INSERT INTO authors (FirstName, LastName, Image, Description) 
-                      VALUES ('$FirstName', '$LastName', '$ImagePath', '$Description')";
-            if ($sql = mysqli_query($conn, $query)) {
-                echo "<script>window.location.href='index.php';alert('Author created successfully');</script>";
+
+        if (!empty($ImageName)) {
+            if (move_uploaded_file($ImageTemp, $ImagePath)) {
+                $query = "INSERT INTO authors (FirstName, LastName, Image, Description) 
+                          VALUES ('$FirstName', '$LastName', '$ImagePath', '$Description')";
             } else {
-                echo "<script>alert('Error, Please Try Again');</script>";
+                echo "<script>alert('Image upload failed. Please try again.');</script>";
+                exit();
             }
         } else {
-            echo "<script>alert('Image upload failed. Please try again.');</script>";
+            // If no image uploaded, assign a default image
+            $defaultImage = "db_image/default_author.png";
+            $query = "INSERT INTO authors (FirstName, LastName, Image, Description) 
+                      VALUES ('$FirstName', '$LastName', '$defaultImage', '$Description')";
+        }
+
+        if (mysqli_query($conn, $query)) {
+            echo "<script>alert('Author created successfully'); window.location.href='index.php';</script>";
+        } else {
+            echo "<script>alert('Error, Please Try Again');</script>";
         }
     }
 }
+
 ?>
 
 <!DOCTYPE html>
